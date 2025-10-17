@@ -1,0 +1,12 @@
+{
+  "timeZone": "America/Denver",
+  "dependencies": {
+    "libraries": [{
+      "userSymbol": "FlexLib",
+      "libraryId": "1ghvvRQ0MFjMwaXrMHuvVCWk8pAE9QGHdRZXFlL4fppInkfE0r3a9oNO6",
+      "version": "0"
+    }]
+  },
+  "exceptionLogging": "STACKDRIVER",
+  "runtimeVersion": "V8"
+}
