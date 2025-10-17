@@ -1,4 +1,4 @@
-// 💪MS4 Test
+// 💪MS4
 /* global FlexLib, PropertiesService, SpreadsheetApp, Session */
 
 const SCRIPT_INITIALIZED_KEY = 'CODEX_INITIALIZED';
