@@ -26,12 +26,12 @@ function fCreateCodexMenu() {
 
   // --- Custom Abilities Submenu ---
   const customAbilitiesMenu = ui.createMenu('⚡ Custom Abilities')
-    .addItem('Create New Sheet', 'fMenuCreateCustomList')
-    .addItem('Rename Sheet', 'fMenuRenameCustomList')
-    .addItem('Delete Sheet(s)', 'fMenuDeleteCustomList')
+    .addItem('Create New Custom Ability', 'fMenuCreateCustomList')
+    .addItem('Rename Custom Ability', 'fMenuRenameCustomList')
+    .addItem('Delete Custom Ability(s)', 'fMenuDeleteCustomList')
     .addSeparator()
-    .addItem('Share My Sheet(s)', 'fMenuShareCustomLists')
-    .addItem('Add Sheet From ID', 'fMenuAddNewCustomSource');
+    .addItem('Share My Custom Ability(s)', 'fMenuShareCustomLists')
+    .addItem('Add Custom Ability From ID', 'fMenuAddNewCustomSource');
 
   // --- Main Flex Menu ---
   ui.createMenu(g.VersionName) // <-- UPDATED
