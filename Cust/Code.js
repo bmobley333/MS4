@@ -16,29 +16,30 @@ function onOpen() {
   const adminEmails = [g.ADMIN_EMAIL, g.DEV_EMAIL].map(e => e.toLowerCase());
   const isAdmin = adminEmails.includes(Session.getActiveUser().getEmail().toLowerCase());
 
-  // --- REVISED LOGIC ---
-  if (!isInitialized) {
-    // If not initialized, ALWAYS show the activation menu.
+  // --- REVISED LOGIC v2 ---
+  if (isAdmin) {
+    // If the user is an admin, ALWAYS show the full admin menus immediately.
+    FlexLib.fApplyPowerValidations();
+    FlexLib.fApplyMagicItemValidations();
+    FlexLib.fApplySkillSetValidations();
+    FlexLib.fCreateCustMenu();
+    FlexLib.fCreateDesignerMenu('Cust');
+    // Admin visibility state is not auto-changed
+  } else if (!isInitialized) {
+    // If it's a regular user AND the sheet is NOT initialized, show only the activation menu.
     SpreadsheetApp.getUi()
       .createMenu(g.VersionName)
       .addItem(`▶️ Activate ${g.VersionName} Menus`, 'fActivateMenus')
       .addToUi();
   } else {
-    // If initialized, create menus based on user role and apply validations.
+    // If it's a regular user AND the sheet IS initialized, show the player menu and apply validations.
     FlexLib.fApplyPowerValidations();
     FlexLib.fApplyMagicItemValidations();
     FlexLib.fApplySkillSetValidations();
-
-    FlexLib.fCreateCustMenu(); // Standard player menu
-
-    if (isAdmin) {
-      FlexLib.fCreateDesignerMenu('Cust'); // Add designer menu for admins
-      // Admin visibility state is no longer auto-changed
-    } else {
-      FlexLib.fCheckAndSetVisibility(false); // Ensure elements are HIDDEN for players
-    }
+    FlexLib.fCreateCustMenu();
+    FlexLib.fCheckAndSetVisibility(false); // Ensure elements are HIDDEN for players
   }
-  // --- END REVISED LOGIC ---
+  // --- END REVISED LOGIC v2 ---
 } // End function onOpen
 
 /* function fActivateMenus
@@ -140,6 +141,35 @@ function fMenuDeleteSelectedMagicItems() {
   FlexLib.run('DeleteSelectedMagicItems', 'Magic Items');
 } // End function fMenuDeleteSelectedMagicItems
 
+/* function buttonVerifyAndPublishPowers
+   Purpose: Local trigger for a button, mimics the "Verify & Publish Powers" menu item.
+   Assumptions: None.
+   Notes: Assign this function name to a button on the <Powers> sheet.
+   @returns {void}
+*/
+function buttonVerifyAndPublishPowers() {
+  FlexLib.run('VerifyAndPublish', 'Powers');
+} // End function buttonVerifyAndPublishPowers
+
+/* function buttonVerifyAndPublishMagicItems
+   Purpose: Local trigger for a button, mimics the "Verify & Publish Items" menu item.
+   Assumptions: None.
+   Notes: Assign this function name to a button on the <Magic Items> sheet.
+   @returns {void}
+*/
+function buttonVerifyAndPublishMagicItems() {
+  FlexLib.run('VerifyAndPublishMagicItems', 'Magic Items');
+} // End function buttonVerifyAndPublishMagicItems
+
+/* function buttonVerifyAndPublishSkillSets
+   Purpose: Local trigger for a button, mimics the "Verify & Publish Skill Sets" menu item.
+   Assumptions: None.
+   Notes: Assign this function name to a button on the <SkillSets> sheet.
+   @returns {void}
+*/
+function buttonVerifyAndPublishSkillSets() {
+  FlexLib.run('VerifyAndPublishSkillSets', 'SkillSets');
+} // End function buttonVerifyAndPublishSkillSets
 
 /* function fMenuVerifyAndPublishSkillSets
    Purpose: Local trigger for the "Verify & Publish Skill Sets" menu item.
