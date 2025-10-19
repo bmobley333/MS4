@@ -17,25 +17,25 @@ function onOpen() {
   const currentUserEmail = Session.getActiveUser().getEmail().toLowerCase(); // Get email once
   const isAdmin = adminEmails.includes(currentUserEmail);
 
-  // --- REVISED LOGIC v3 ---
-  if (isAdmin) {
-    // If the user is an admin, ALWAYS show the full admin menus immediately.
-    // This prevents admins from accidentally triggering player setup on templates.
-    FlexLib.fCreateCodexMenu();
-    FlexLib.fCreateDesignerMenu('Codex');
-    // Admin visibility state is not auto-changed
-  } else if (!isInitialized) {
-    // If it's a regular user AND the sheet is NOT initialized, show only the activation menu.
+  // --- REVISED LOGIC v4 ---
+  if (!isInitialized) {
+    // If the sheet is NOT initialized, ALWAYS show only the activation menu.
+    // This applies to both admins and regular users to allow testing the setup.
     SpreadsheetApp.getUi()
       .createMenu(g.VersionName)
       .addItem(`▶️ Activate ${g.VersionName} Menus`, 'fActivateCodex')
       .addToUi();
+  } else if (isAdmin) {
+    // If the sheet IS initialized and the user is an admin, show full menus.
+    FlexLib.fCreateCodexMenu();
+    FlexLib.fCreateDesignerMenu('Codex');
+    // Admin visibility state is not auto-changed
   } else {
-    // If it's a regular user AND the sheet IS initialized, show the player menu.
+    // If the sheet IS initialized and it's a regular user, show the player menu.
     FlexLib.fCreateCodexMenu();
     FlexLib.fCheckAndSetVisibility(false); // Ensure elements are HIDDEN for players
   }
-  // --- END REVISED LOGIC v3 ---
+  // --- END REVISED LOGIC v4 ---
 } // End function onOpen
 
 /* function fActivateCodex
