@@ -1,5 +1,5 @@
-/* global SpreadsheetApp */
-/* exported fCreateCodexMenu, fCreateFlexMenu, fCreateGenericMenus, fCreateCustMenu, fCreateDesignerMenu */
+/* global SpreadsheetApp, fCheckAndSetVisibility */
+/* exported fCreateCodexMenu, fCreateFlexMenu, fCreateGenericMenus, fCreateCustMenu, fCreateDesignerMenu, fCheckAndSetVisibility */
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // End - n/a

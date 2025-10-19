@@ -13,13 +13,18 @@ function onOpen() {
   const scriptProperties = PropertiesService.getScriptProperties();
   const isInitialized = scriptProperties.getProperty(SCRIPT_INITIALIZED_KEY);
   const g = FlexLib.getGlobals();
-  const isAdmin = Session.getActiveUser().getEmail() === g.ADMIN_EMAIL;
+  const adminEmails = [g.ADMIN_EMAIL, g.DEV_EMAIL].map(e => e.toLowerCase());
+  const isAdmin = adminEmails.includes(Session.getActiveUser().getEmail().toLowerCase());
 
   if (isInitialized || isAdmin) {
     // If the script is initialized OR the user is the admin, create the full menus.
     FlexLib.fCreateCodexMenu();
+
     if (isAdmin) {
       FlexLib.fCreateDesignerMenu('Codex');
+      // Admin visibility state is no longer auto-changed
+    } else {
+      FlexLib.fCheckAndSetVisibility(false); // Ensure elements are HIDDEN for players
     }
   } else {
     // If not initialized, show a simple menu to activate the script.

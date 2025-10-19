@@ -24,10 +24,14 @@ function onOpen() {
 
     // Get the globals object from the library to access admin email.
     const g = FlexLib.getGlobals();
+    const adminEmails = [g.ADMIN_EMAIL, g.DEV_EMAIL].map(e => e.toLowerCase());
+    const isAdmin = adminEmails.includes(Session.getActiveUser().getEmail().toLowerCase());
 
-    // Only show the Designer menu if the user is the admin.
-    if (Session.getActiveUser().getEmail() === g.ADMIN_EMAIL) {
+    if (isAdmin) {
       FlexLib.fCreateDesignerMenu('Cust');
+      // Admin visibility state is no longer auto-changed
+    } else {
+      FlexLib.fCheckAndSetVisibility(false); // Ensure elements are HIDDEN for players
     }
   } else {
     SpreadsheetApp.getUi()

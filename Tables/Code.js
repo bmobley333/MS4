@@ -8,18 +8,17 @@
    @returns {void}
 */
 function onOpen() {
-  FlexLib.fCreateDesignerMenu('Tables');
-} // End function onOpen
+  const g = FlexLib.getGlobals();
+  const adminEmails = [g.ADMIN_EMAIL, g.DEV_EMAIL].map(e => e.toLowerCase());
+  const isAdmin = adminEmails.includes(Session.getActiveUser().getEmail().toLowerCase());
 
-/* function fMenuPlaceholder
-   Purpose: Local trigger for placeholder menu items.
-   Assumptions: None.
-   Notes: Acts as a pass-through to the central dispatcher in FlexLib.
-   @returns {void}
-*/
-function fMenuPlaceholder() {
-  FlexLib.run('ShowPlaceholder');
-} // End function fMenuPlaceholder
+  if (isAdmin) {
+    FlexLib.fCreateDesignerMenu('Tables');
+    // Admin visibility state is no longer auto-changed
+  } else {
+    FlexLib.fCheckAndSetVisibility(false); // Ensure elements are HIDDEN for players
+  }
+} // End function onOpen
 
 
 /* function fMenuTrimSheet

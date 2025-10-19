@@ -1,5 +1,5 @@
-/* global SpreadsheetApp, fParseA1Notation, fShowMessage */
-/* exported fToggleDesignerVisibility */
+/* global SpreadsheetApp, fParseA1Notation, fShowMessage, fShowToast, fEndToast */
+/* exported fToggleDesignerVisibility, fGetVisibilityState, fCheckAndSetVisibility */
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // End - n/a
@@ -16,37 +16,19 @@ function fToggleDesignerVisibility() {
   fShowToast('⏳ Toggling visibility...', 'Show/Hide All');
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const allSheets = ss.getSheets();
-  const hideMarkerSheet = ss.getSheetByName('Hide>');
-  let shouldHide;
+  const currentState = fGetVisibilityState(ss, allSheets);
 
-  if (hideMarkerSheet) {
-    shouldHide = !hideMarkerSheet.isSheetHidden();
-  } else {
-    // Fallback: Determine state by checking the first available element
-    for (const sheet of allSheets) {
-      const note = sheet.getRange('A1').getNote();
-      if (note.includes('Hide: ')) {
-        const hideString = note.split('Hide: ')[1].split('\n')[0];
-        const ranges = fParseA1Notation(hideString);
-        if (ranges.rows.length > 0) {
-          shouldHide = !sheet.isRowHiddenByUser(ranges.rows[0]);
-        } else if (ranges.cols.length > 0) {
-          shouldHide = !sheet.isColumnHiddenByUser(ranges.cols[0]);
-        }
-        break; // State determined, no need to check other sheets
-      }
-    }
-  }
-
-  if (shouldHide === undefined) {
+  if (currentState === 'unknown') {
     fEndToast();
     fShowMessage('ℹ️ No Action', 'No designer elements with "Hide:" notes were found to toggle.');
     return;
   }
 
-  SpreadsheetApp.flush(); // Apply pending changes before proceeding
-
+  const shouldHide = currentState === 'shown';
+  const hideMarkerSheet = ss.getSheetByName('Hide>');
   const hideMarkerIndex = hideMarkerSheet ? hideMarkerSheet.getIndex() : -1;
+
+  SpreadsheetApp.flush(); // Apply pending changes before proceeding
 
   if (shouldHide) {
     fHideAllElements(allSheets, hideMarkerIndex);
@@ -58,6 +40,60 @@ function fToggleDesignerVisibility() {
     fShowMessage('✅ Success', 'All designer elements have been shown.');
   }
 } // End function fToggleDesignerVisibility
+
+/* function fGetVisibilityState
+   Purpose: Checks if the designer elements are currently 'hidden', 'shown', or 'unknown'.
+   Assumptions: None.
+   Notes: This is the definitive state checker for the visibility toggle system.
+   @param {GoogleAppsScript.Spreadsheet.Spreadsheet} [ss=SpreadsheetApp.getActiveSpreadsheet()] - The spreadsheet object.
+   @param {GoogleAppsScript.Spreadsheet.Sheet[]} [allSheets=ss.getSheets()] - An array of all sheets.
+   @returns {string} 'hidden', 'shown', or 'unknown'.
+*/
+function fGetVisibilityState(ss = SpreadsheetApp.getActiveSpreadsheet(), allSheets = ss.getSheets()) {
+  const hideMarkerSheet = ss.getSheetByName('Hide>');
+
+  // 1. Check the 'Hide>' marker sheet first.
+  if (hideMarkerSheet) {
+    return hideMarkerSheet.isSheetHidden() ? 'hidden' : 'shown';
+  }
+
+  // 2. If no marker sheet, check the A1 note of all sheets.
+  for (const sheet of allSheets) {
+    const note = sheet.getRange('A1').getNote();
+    if (note.includes('Hide: ')) {
+      const hideString = note.split('Hide: ')[1].split('\n')[0];
+      const ranges = fParseA1Notation(hideString);
+      if (ranges.rows.length > 0) {
+        return sheet.isRowHiddenByUser(ranges.rows[0]) ? 'hidden' : 'shown';
+      }
+      if (ranges.cols.length > 0) {
+        return sheet.isColumnHiddenByUser(ranges.cols[0]) ? 'hidden' : 'shown';
+      }
+    }
+  }
+
+  // 3. If no 'Hide:' notes are found anywhere, the state is unknown.
+  return 'unknown';
+} // End function fGetVisibilityState
+
+/* function fCheckAndSetVisibility
+   Purpose: Automatically shows or hides designer elements based on the desired state.
+   Assumptions: None.
+   Notes: This is called by onOpen triggers to enforce visibility rules.
+   @param {boolean} shouldShow - If true, ensures elements are visible. If false, ensures they are hidden.
+   @returns {void}
+*/
+function fCheckAndSetVisibility(shouldShow) {
+  const currentState = fGetVisibilityState();
+
+  if (shouldShow && currentState === 'hidden') {
+    // Admin user, and elements are hidden, so show them.
+    fToggleDesignerVisibility();
+  } else if (!shouldShow && currentState === 'shown') {
+    // Player user, and elements are visible, so hide them.
+    fToggleDesignerVisibility();
+  }
+} // End function fCheckAndSetVisibility
 
 /* function fHideAllElements
    Purpose: Hides all designated designer elements.

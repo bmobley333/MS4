@@ -12,9 +12,17 @@ const SCRIPT_INITIALIZED_KEY = 'SCRIPT_INITIALIZED';
 function onOpen() {
   const scriptProperties = PropertiesService.getScriptProperties();
   const isInitialized = scriptProperties.getProperty(SCRIPT_INITIALIZED_KEY);
+  const g = FlexLib.getGlobals();
+  const adminEmails = [g.ADMIN_EMAIL, g.DEV_EMAIL].map(e => e.toLowerCase());
+  const isAdmin = adminEmails.includes(Session.getActiveUser().getEmail().toLowerCase());
 
   if (isInitialized) {
-    FlexLib.fCreateDesignerMenu('DB');
+    if (isAdmin) {
+      FlexLib.fCreateDesignerMenu('DB');
+      // Admin visibility state is no longer auto-changed
+    } else {
+      FlexLib.fCheckAndSetVisibility(false); // Ensure elements are HIDDEN for players
+    }
   } else {
     SpreadsheetApp.getUi()
       .createMenu('💪 MS3')

@@ -13,7 +13,16 @@
    @returns {void}
 */
 function onOpen() {
-  FlexLib.fCreateDesignerMenu('Ver');
+  const g = FlexLib.getGlobals();
+  const adminEmails = [g.ADMIN_EMAIL, g.DEV_EMAIL].map(e => e.toLowerCase());
+  const isAdmin = adminEmails.includes(Session.getActiveUser().getEmail().toLowerCase());
+
+  if (isAdmin) {
+    FlexLib.fCreateDesignerMenu('Ver');
+    // Admin visibility state is no longer auto-changed
+  } else {
+    FlexLib.fCheckAndSetVisibility(false); // Ensure elements are HIDDEN for players
+  }
 } // End function onOpen
 
 
