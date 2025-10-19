@@ -10,30 +10,17 @@ const SCRIPT_INITIALIZED_KEY = 'SCRIPT_INITIALIZED';
    @returns {void}
 */
 function onOpen() {
-  const scriptProperties = PropertiesService.getScriptProperties();
-  const isInitialized = scriptProperties.getProperty(SCRIPT_INITIALIZED_KEY);
   const g = FlexLib.getGlobals();
   const adminEmails = [g.ADMIN_EMAIL, g.DEV_EMAIL].map(e => e.toLowerCase());
   const isAdmin = adminEmails.includes(Session.getActiveUser().getEmail().toLowerCase());
 
-  // --- REVISED LOGIC ---
-  if (!isInitialized) {
-    // If not initialized, ALWAYS show the activation menu.
-    SpreadsheetApp.getUi()
-      .createMenu(g.VersionName)
-      .addItem(`▶️ Activate ${g.VersionName} Menus`, 'fActivateMenus')
-      .addToUi();
+  if (isAdmin) {
+    FlexLib.fCreateDesignerMenu('DB'); // Only admins see menus here
+    // Admin visibility state is no longer auto-changed
   } else {
-    // If initialized, create menus based on user role.
-    if (isAdmin) {
-      FlexLib.fCreateDesignerMenu('DB'); // Only admins see menus here
-      // Admin visibility state is no longer auto-changed
-    } else {
-      // Regular players see no menu here, but still hide designer elements
-      FlexLib.fCheckAndSetVisibility(false);
-    }
+    // Regular players see no menu here, but still hide designer elements
+    FlexLib.fCheckAndSetVisibility(false);
   }
-  // --- END REVISED LOGIC ---
 } // End function onOpen
 
 /* function fActivateMenus
