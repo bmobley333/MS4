@@ -49,10 +49,10 @@ function fClearAllFilterCheckboxes(sheetName) {
 } // End function fClearAllFilterCheckboxes
 
 /* function fGetAllPowerTablesList
-   Purpose: A helper function to get a definitive, aggregated list of all available power tables from DB and Custom sources.
+   Purpose: A helper function to get a definitive, aggregated list of all available power tables from DB and Custom sources, including SubType.
    Assumptions: None.
-   Notes: This is the central source of truth for what power tables currently exist.
-   @returns {{allPowerTables: Array<{tableName: string, source: string}>}} An object containing the aggregated list.
+   Notes: This is the central source of truth for what power tables currently exist. Includes SubType for sorting.
+   @returns {{allPowerTables: Array<{tableName: string, source: string, subType: string}>}} An object containing the aggregated list.
 */
 function fGetAllPowerTablesList() {
   const dbPowerTables = [];
@@ -66,8 +66,21 @@ function fGetAllPowerTablesList() {
     const headerRow = rowTags.header;
     if (headerRow !== undefined) {
       const tableNameCol = colTags.tablename;
-      const dbTableNames = [...new Set(arr.slice(headerRow + 1).map(row => row[tableNameCol]).filter(name => name))];
-      dbTableNames.forEach(name => dbPowerTables.push({ tableName: name, source: 'DB' }));
+      const subTypeCol = colTags.subtype; // <-- Get SubType column index
+      const uniqueTables = {}; // Use an object to track unique tables and their subtypes
+
+      arr.slice(headerRow + 1).forEach(row => {
+        const tableName = row[tableNameCol];
+        const subType = row[subTypeCol];
+        if (tableName && !uniqueTables[tableName]) { // Only add if not already seen
+          uniqueTables[tableName] = subType || 'Unknown'; // Store subtype, default if blank
+        }
+      });
+
+      // Convert the uniqueTables object into the desired array format
+      for (const tableName in uniqueTables) {
+        dbPowerTables.push({ tableName: tableName, source: 'DB', subType: uniqueTables[tableName] });
+      }
     }
   }
 
@@ -87,8 +100,20 @@ function fGetAllPowerTablesList() {
           const headerRow = rowTags.header;
           if (headerRow !== undefined) {
             const tableNameCol = colTags.tablename;
-            const customTableNames = [...new Set(arr.slice(headerRow + 1).map(row => row[tableNameCol]).filter(name => name))];
-            customTableNames.forEach(name => customPowerTables.push({ tableName: `Cust - ${name}`, source: sourceName }));
+            const subTypeCol = colTags.subtype; // <-- Get SubType column index
+            const uniqueTables = {};
+
+            arr.slice(headerRow + 1).forEach(row => {
+              const tableName = row[tableNameCol];
+              const subType = row[subTypeCol];
+              if (tableName && !uniqueTables[tableName]) {
+                uniqueTables[tableName] = subType || 'Unknown';
+              }
+            });
+
+            for (const tableName in uniqueTables) {
+              customPowerTables.push({ tableName: `Cust - ${tableName}`, source: sourceName, subType: uniqueTables[tableName] });
+            }
           }
         } catch (e) {
           // Fail silently during the health check
@@ -98,14 +123,34 @@ function fGetAllPowerTablesList() {
     }
   }
 
-  dbPowerTables.sort((a, b) => a.tableName.localeCompare(b.tableName));
+  // --- NEW SORTING LOGIC ---
+  // Define the desired order for SubTypes
+  const subTypeOrder = ['Class', 'Race', 'Combat Style', 'Luck', 'Unknown']; // Add others as needed
+
+  // Sort DB tables first
+  dbPowerTables.sort((a, b) => {
+    const subTypeIndexA = subTypeOrder.indexOf(a.subType);
+    const subTypeIndexB = subTypeOrder.indexOf(b.subType);
+
+    // Sort by SubType order
+    if (subTypeIndexA !== subTypeIndexB) {
+      return (subTypeIndexA === -1 ? Infinity : subTypeIndexA) - (subTypeIndexB === -1 ? Infinity : subTypeIndexB);
+    }
+    // If SubTypes are the same, sort by TableName
+    return a.tableName.localeCompare(b.tableName);
+  });
+
+  // Sort Custom tables alphabetically by TableName
   customPowerTables.sort((a, b) => a.tableName.localeCompare(b.tableName));
+  // --- END NEW SORTING LOGIC ---
+
+  // Combine DB tables first, then Custom tables
   return { allPowerTables: [...dbPowerTables, ...customPowerTables] };
 } // End function fGetAllPowerTablesList
 
 /* function fUpdatePowerTablesList
-   Purpose: Updates the <Filter Powers> sheet with a unique list of all TableNames from the PLAYER'S LOCAL DB and all registered custom sources.
-   Assumptions: The user is running this from a Character Sheet.
+   Purpose: Updates the <Filter Powers> sheet with a unique list of all TableNames from the PLAYER'S LOCAL DB and all registered custom sources, sorted by SubType then TableName.
+   Assumptions: The user is running this from a Character Sheet. The <Filter Powers> sheet has a 'subtype' column tag.
    Notes: Aggregates from multiple sources and sorts them into logical groups. Can be run silently.
    @param {boolean} [isSilent=false] - If true, suppresses the final success message.
    @returns {void}
@@ -122,94 +167,126 @@ function fUpdatePowerTablesList(isSilent = false) {
     return;
   }
 
-  // --- NEW: Preserve checked state ---
+  // --- Preserve checked state ---
   const { arr: oldArr, rowTags: oldRowTags, colTags: oldColTags } = fGetSheetData('CS', 'Filter Powers', destSS, true);
   const oldHeaderRow = oldRowTags.header;
   const previouslyChecked = new Set();
-  if (oldHeaderRow !== undefined) {
+  // Check if necessary tags exist before trying to access them
+  if (oldHeaderRow !== undefined && oldColTags.isactive !== undefined && oldColTags.tablename !== undefined) {
     for (let r = oldHeaderRow + 1; r < oldArr.length; r++) {
-      if (oldArr[r][oldColTags.isactive] === true) {
+      if (oldArr[r] && oldArr[r][oldColTags.isactive] === true && oldArr[r][oldColTags.tablename]) { // Check tablename exists
         previouslyChecked.add(oldArr[r][oldColTags.tablename]);
       }
     }
   }
-  // --- END NEW ---
+  // --- END Preserve checked state ---
 
+  // --- Get sorted data including SubType ---
   const { allPowerTables } = fGetAllPowerTablesList();
+  // --- END Get sorted data ---
 
   const { rowTags: destRowTags, colTags: destColTags } = fGetSheetData('CS', 'Filter Powers', destSS, true);
-  const destHeaderRow = destRowTags.header;
+  const destHeaderRow = destRowTags.header; // 0-based index
   if (destHeaderRow === undefined) {
     if (!isSilent) fEndToast();
     fShowMessage('❌ Error', 'Could not find a "Header" tag in the <Filter Powers> sheet.');
     return;
   }
-
-  const lastRow = destSheet.getLastRow();
-  const firstDataRow = destHeaderRow + 2;
-  if (lastRow >= firstDataRow) {
-    destSheet.getRange(firstDataRow, 1, lastRow - firstDataRow + 1, destSheet.getMaxColumns()).clearContent();
-    if (lastRow > firstDataRow) {
-      destSheet.deleteRows(firstDataRow + 1, lastRow - firstDataRow);
-    }
+  if (destColTags.subtype === undefined) {
+    if (!isSilent) fEndToast();
+    fShowMessage('❌ Error', 'The <Filter Powers> sheet is missing the required "SubType" column tag.');
+    return;
   }
+
+  const firstDataRow = destHeaderRow + 2; // 1-based row number for the first *data* row (template row)
+  const lastRow = destSheet.getLastRow(); // 1-based row number of the last row with content
+
+  // --- REVISED CLEARING LOGIC ---
+  // 1. Delete extra rows: If there's more than one data row currently, delete rows AFTER the first data row.
+  if (lastRow > firstDataRow) {
+    destSheet.deleteRows(firstDataRow + 1, lastRow - firstDataRow);
+  }
+  // 2. Clear content of the first data row (template row), EXCLUDING the row tag in column A.
+  // Check if firstDataRow actually has content before clearing
+  if (lastRow >= firstDataRow && destSheet.getMaxColumns() > 1) {
+    destSheet.getRange(firstDataRow, 2, 1, destSheet.getMaxColumns() - 1).clearContent();
+  }
+  // --- END REVISED CLEARING LOGIC ---
+
 
   const newRowCount = allPowerTables.length;
   if (newRowCount > 0) {
+    // Add new rows if needed (if more than one item needs to be written)
     if (newRowCount > 1) {
       destSheet.insertRowsAfter(firstDataRow, newRowCount - 1);
+      // Copy formatting from the (now potentially empty) template row
       const formatSourceRange = destSheet.getRange(firstDataRow, 1, 1, destSheet.getMaxColumns());
       const formatDestRange = destSheet.getRange(firstDataRow + 1, 1, newRowCount - 1, destSheet.getMaxColumns());
-      formatSourceRange.copyTo(formatDestRange, {
-        formatOnly: true,
-      });
+      formatSourceRange.copyTo(formatDestRange, { formatOnly: true });
     }
 
-    const dataToWrite = allPowerTables.map(item => {
-      const row = [];
-      row[destColTags.tablename - 1] = item.tableName;
-      row[destColTags.source - 1] = item.source;
-      return row;
-    });
-
-    destSheet.getRange(firstDataRow, 2, newRowCount, dataToWrite[0].length).setValues(dataToWrite);
-
-    // --- NEW: Re-apply checked state ---
-    const newIsActiveCol = destColTags.isactive + 1;
-    const newTableNameCol = destColTags.tablename;
-    const newData = destSheet.getRange(firstDataRow, newTableNameCol + 1, newRowCount, 1).getValues();
-
-    newData.forEach((row, index) => {
-      const tableName = row[0];
-      const range = destSheet.getRange(firstDataRow + index, newIsActiveCol);
-      if (previouslyChecked.has(tableName)) {
-        range.check();
-      } else {
-        range.insertCheckboxes(); // Ensure even unchecked rows get a box
+    // --- SIMPLIFIED DATA PREPARATION ---
+    // Create a 2D array directly mapping the sorted data to the sheet columns (excluding column A)
+    const outputData = allPowerTables.map(item => {
+      const rowArray = [];
+      // Create an empty array representing the row structure based on max columns
+      for (let i = 1; i < destSheet.getMaxColumns(); i++) { // Start from 1 to skip tag column A
+        rowArray.push('');
       }
+      // Place data according to colTags indices (adjusting because we sliced column A)
+      if (destColTags.tablename !== undefined) rowArray[destColTags.tablename - 1] = item.tableName;
+      if (destColTags.subtype !== undefined) rowArray[destColTags.subtype - 1] = item.subType;
+      if (destColTags.source !== undefined) rowArray[destColTags.source - 1] = item.source;
+      // 'isactive' (checkbox) is handled after writing
+      return rowArray;
     });
-    // --- END NEW ---
+    // --- END SIMPLIFIED DATA PREPARATION ---
+
+
+    // Write the data starting from column B (index 1) of the first data row
+    const writeRange = destSheet.getRange(firstDataRow, 2, newRowCount, outputData[0].length);
+    writeRange.setValues(outputData);
+
+    // --- Re-apply checked state and ensure checkboxes ---
+    const newIsActiveCol = destColTags.isactive + 1; // 1-based column for getRange
+    const newTableNameCol = destColTags.tablename + 1; // 1-based column for getRange
+
+    // Iterate through the newly written rows
+    for (let i = 0; i < newRowCount; i++) {
+      const currentRow = firstDataRow + i;
+      const tableName = destSheet.getRange(currentRow, newTableNameCol).getValue();
+      const checkboxRange = destSheet.getRange(currentRow, newIsActiveCol);
+      // Ensure the checkboxRange is valid before trying to insert/check
+      if (checkboxRange) {
+        if (previouslyChecked.has(tableName)) {
+          checkboxRange.check();
+        } else {
+          checkboxRange.insertCheckboxes(); // Ensure even unchecked rows get a box
+        }
+      }
+    }
+    // --- END Re-apply checked state ---
   }
 
   if (isSilent) {
     fShowToast('✅ Power tables synced.', '⚙️ Onboarding');
   } else {
     fEndToast();
-    fShowMessage('✅ Success', `The <Filter Powers> sheet has been updated with ${newRowCount} power tables.\n\nYour previous selections have been preserved.`);
+    fShowMessage('✅ Success', `The <Filter Powers> sheet has been updated with ${newRowCount} power tables, sorted by SubType.\n\nYour previous selections have been preserved.`);
   }
 } // End function fUpdatePowerTablesList
 
 /* function fGetPowerSourceData
    Purpose: A helper to fetch, process, and aggregate all power data from the master Tables file.
-   Assumptions: The 'Tbls' file ID is valid and the source sheets exist.
-   Notes: This is a helper for the fBuildPowers refactor.
+   Assumptions: The 'Tables' file ID is valid and the source sheets exist.
+   Notes: This is a helper for the fBuildPowers refactor. Filters out header/template rows.
    @param {object} destColTags - The column tag map from the destination <Powers> sheet.
    @returns {Array<Array<string>>} A 2D array of the aggregated and processed power data.
 */
 function fGetPowerSourceData(destColTags) {
-  const tablesId = fGetMasterSheetId(g.CURRENT_VERSION, 'Tbls');
+  const tablesId = fGetMasterSheetId(g.CURRENT_VERSION, 'Tables');
   if (!tablesId) {
-    throw new Error('Could not find the ID for the "Tbls" spreadsheet in the master <Versions> sheet.');
+    throw new Error('Could not find the ID for the "Tables" spreadsheet in the master <Versions> sheet.');
   }
 
   const sourceSS = SpreadsheetApp.openById(tablesId);
@@ -232,30 +309,54 @@ function fGetPowerSourceData(destColTags) {
       return;
     }
 
+    // --- Define required column tags ---
+    const abilityNameCol = sourceColTags.abilityname;
+    const subTypeCol = sourceColTags.subtype;
+    const tableNameCol = sourceColTags.tablename;
+    const usageCol = sourceColTags.usage;
+    const actionCol = sourceColTags.action;
+    const effectCol = sourceColTags.effect;
+    const typeCol = sourceColTags.type;
+    const sourceCol = sourceColTags.source;
+
+    // Check if essential columns are missing
+    if (abilityNameCol === undefined || subTypeCol === undefined || tableNameCol === undefined || usageCol === undefined || actionCol === undefined || effectCol === undefined) {
+      fShowToast(`⚠️ Missing required column tags (abilityname, subtype, etc.) in <${sourceSheetName}>. Skipping.`, 'Build Powers', 10);
+      return;
+    }
+    // --- End required column tags check ---
+
+
     for (let r = sourceHeaderIndex + 1; r < sourceArr.length; r++) {
       const row = sourceArr[r];
-      const abilityName = row[sourceColTags.abilityname];
+      const abilityName = row[abilityNameCol];
+      const subType = row[subTypeCol]; // Get SubType for filtering
 
-      if (abilityName && abilityName !== 'Power') {
-        const tableName = row[sourceColTags.tablename];
-        const usage = row[sourceColTags.usage];
-        const action = row[sourceColTags.action];
-        const effect = row[sourceColTags.effect];
-        const dropDownValue = `${tableName} - ${abilityName}⚡ (${usage}, ${action}) ➡ ${effect}`;
-
-        const newRow = [];
-        newRow[destColTags.dropdown] = dropDownValue;
-        newRow[destColTags.type] = row[sourceColTags.type];
-        newRow[destColTags.subtype] = row[sourceColTags.subtype];
-        newRow[destColTags.tablename] = tableName;
-        newRow[destColTags.source] = row[sourceColTags.source];
-        newRow[destColTags.usage] = usage;
-        newRow[destColTags.action] = action;
-        newRow[destColTags.abilityname] = abilityName;
-        newRow[destColTags.effect] = effect;
-
-        allPowersData.push(newRow);
+      // --- THIS IS THE FIX ---
+      // Skip row if AbilityName is 'Power' OR SubType is 'SubType' (indicating a header/template row)
+      if (!abilityName || abilityName === 'Power' || subType === 'SubType') {
+        continue;
       }
+      // --- END FIX ---
+
+      const tableName = row[tableNameCol];
+      const usage = row[usageCol];
+      const action = row[actionCol];
+      const effect = row[effectCol];
+      const dropDownValue = `${tableName} - ${abilityName}⚡ (${usage}, ${action}) ➡ ${effect}`;
+
+      const newRow = [];
+      newRow[destColTags.dropdown] = dropDownValue;
+      newRow[destColTags.type] = row[typeCol]; // Use typeCol index
+      newRow[destColTags.subtype] = subType; // Already have subType
+      newRow[destColTags.tablename] = tableName; // Already have tableName
+      newRow[destColTags.source] = row[sourceCol]; // Use sourceCol index
+      newRow[destColTags.usage] = usage; // Already have usage
+      newRow[destColTags.action] = action; // Already have action
+      newRow[destColTags.abilityname] = abilityName; // Already have abilityName
+      newRow[destColTags.effect] = effect; // Already have effect
+
+      allPowersData.push(newRow);
     }
   });
 

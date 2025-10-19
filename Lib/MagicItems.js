@@ -312,15 +312,15 @@ function fDeleteSelectedMagicItems() {
 
 /* function fGetMagicItemSourceData
    Purpose: A helper to fetch, process, and aggregate all magic item data from the master Tables file.
-   Assumptions: The 'Tbls' file ID is valid and the 'Magic Items' source sheet exists.
+   Assumptions: The 'Tables' file ID is valid and the 'Magic Items' source sheet exists.
    Notes: This is a helper for the fBuildMagicItems refactor.
    @param {object} destColTags - The column tag map from the destination <Magic Items> sheet.
    @returns {Array<Array<string>>} A 2D array of the aggregated and processed magic item data.
 */
 function fGetMagicItemSourceData(destColTags) {
-  const tablesId = fGetMasterSheetId(g.CURRENT_VERSION, 'Tbls');
+  const tablesId = fGetMasterSheetId(g.CURRENT_VERSION, 'Tables'); // <-- UPDATED
   if (!tablesId) {
-    throw new Error('Could not find the ID for the "Tbls" spreadsheet in the master <Versions> sheet.');
+    throw new Error('Could not find the ID for the "Tables" spreadsheet in the master <Versions> sheet.'); // <-- UPDATED
   }
 
   const sourceSS = SpreadsheetApp.openById(tablesId);
