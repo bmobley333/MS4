@@ -1,5 +1,5 @@
-/* global g, fGetSheetData, SpreadsheetApp, fPromptWithInput, fShowToast, fEndToast, fShowMessage, fGetCodexSpreadsheet, DriveApp, MailApp, Session, Drive, fGetSheetId, fGetOrCreateFolder, fDeleteTableRow */
-/* exported fAddOwnCustomAbilitiesSource, fShareMyAbilities, fAddNewCustomSource, fCreateNewCustomList, fRenameCustomList, fDeleteCustomList */
+/* global g, fGetSheetData, SpreadsheetApp, fPromptWithInput, fShowToast, fEndToast, fShowMessage, fGetCodexSpreadsheet, DriveApp, MailApp, Session, Drive, fGetSheetId, fGetOrCreateFolder, fDeleteTableRow, fGetVerifiedLocalFile, fEmbedCodexId */
+/* exported fAddOwnCustomAbilitiesSource, fShareMyAbilities, fAddNewCustomSource, fCreateNewCustomList, fRenameCustomList, fDeleteCustomList, fApplyPowerValidations, fVerifyAndPublish, fDeleteSelectedPowers, fVerifyAndPublishMagicItems, fDeleteSelectedMagicItems, fApplyMagicItemValidations, fApplySkillSetValidations, fVerifyAndPublishSkillSets, fDeleteSelectedSkillSets */
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // End - n/a
@@ -474,8 +474,8 @@ function fRenameCustomList() {
   for (let r = headerRow + 1; r < arr.length; r++) {
     if (arr[r] && arr[r][colTags.checkbox] === true) {
       selectedLists.push({
-        row: r + 1, // 1-based row
-        name: arr[r][colTags.custabilitiesname], // <-- CHANGE HERE
+        row: r + 1,
+        name: arr[r][colTags.custabilitiesname],
         id: arr[r][colTags.sheetid],
         owner: arr[r][colTags.owner],
         version: g.CURRENT_VERSION, // Assuming current version for simplicity
@@ -497,7 +497,7 @@ function fRenameCustomList() {
 
   const listToRename = selectedLists[0];
 
-  if (listToRename.owner !== 'Me') { // <-- CHANGE HERE
+  if (listToRename.owner !== 'Me') {
     fEndToast();
     fShowMessage('❌ Permission Denied', 'You can only rename custom ability lists that you own.');
     return;
@@ -512,9 +512,11 @@ function fRenameCustomList() {
     return;
   }
 
-  // Process the new name (strip and re-apply correct version prefix)
-  const cleanedName = newBaseName.replace(/^v\d+\s*/, '').trim();
-  const finalName = `v${listToRename.version} ${cleanedName}`;
+  // Process the new name (strip existing prefix, add new prefix)
+  // Use a more robust regex to handle different potential prefixes
+  const prefixRegex = /^(v|💪MS|💪)\d+\s*/;
+  const cleanedName = newBaseName.replace(prefixRegex, '').trim();
+  const finalName = `${g.ShortVersionName} ${cleanedName}`; // <-- UPDATED
 
   // Execute the rename
   fShowToast(`Renaming to "${finalName}"...`, 'Rename Custom List');
@@ -522,7 +524,7 @@ function fRenameCustomList() {
     const file = DriveApp.getFileById(listToRename.id);
     file.setName(finalName);
 
-    const nameCell = codexSS.getSheetByName(sheetName).getRange(listToRename.row, colTags.custabilitiesname + 1); // <-- CHANGE HERE
+    const nameCell = codexSS.getSheetByName(sheetName).getRange(listToRename.row, colTags.custabilitiesname + 1);
     const url = nameCell.getRichTextValue().getLinkUrl();
     const newLink = SpreadsheetApp.newRichTextValue().setText(finalName).setLinkUrl(url).build();
     nameCell.setRichTextValue(newLink);
@@ -575,7 +577,10 @@ function fCreateNewCustomList() {
   }
 
   // Apply versioning to the name.
-  const versionedListName = `v${g.CURRENT_VERSION} ${listName.replace(/^v\d+\s*/, '').trim()}`;
+  // Use a more robust regex to handle different potential prefixes
+  const prefixRegex = /^(v|💪MS|💪)\d+\s*/;
+  const cleanedName = listName.replace(prefixRegex, '').trim();
+  const versionedListName = `${g.ShortVersionName} ${cleanedName}`; // <-- UPDATED
   newCustFile.setName(versionedListName);
 
   // 4. Log the new list in the Codex's <Custom Abilities> sheet.
@@ -615,7 +620,7 @@ function fCreateNewCustomList() {
   destSheet.getRange(targetRow, colTags.custabilitiesname + 1).setRichTextValue(link);
 
   fEndToast();
-  fShowMessage('✅ Success', `Your new custom ability list "${listName}" has been created and added to your Codex.`);
+  fShowMessage('✅ Success', `Your new custom ability list "${cleanedName}" has been created and added to your Codex.`); // Display cleaned name
 } // End function fCreateNewCustomList
 
 /* function fShareCustomLists

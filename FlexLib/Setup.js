@@ -19,7 +19,7 @@ function fInitialSetup() {
 
   // 1. Create Folder Structure & Store Folder IDs
   fShowToast('Creating Google Drive folders...', '⚙️ Setup');
-  const parentFolderName = `${g.VersionName} RPG`; // <-- UPDATED
+  const parentFolderName = `${g.VersionName} RPG`;
   const parentFolder = fGetOrCreateFolder(parentFolderName);
   const masterCopiesFolder = fGetOrCreateFolder('Master Copies', parentFolder);
   const charactersFolder = fGetOrCreateFolder('Characters', parentFolder);
@@ -50,13 +50,12 @@ function fInitialSetup() {
   fShowToast('Organizing your Codex file...', '⚙️ Setup');
   const thisFile = DriveApp.getFileById(codexSS.getId());
   fMoveFileToFolder(thisFile, parentFolder);
-  thisFile.setName("Player's Codex");
+  const newCodexName = `${g.ShortVersionName} Codex`; // <-- UPDATED
+  thisFile.setName(newCodexName);
 
   // 3. Get Master Version Data
   fShowToast('Fetching the latest version list...', '⚙️ Setup');
   const sourceSS = SpreadsheetApp.openById(g.MASTER_VER_ID);
-  // --- THIS IS THE FIX ---
-  // Use the architecturally correct gatekeeper to get the master version data.
   const { arr: sourceData } = fGetSheetData('Ver', 'Versions', sourceSS, true);
   if (!sourceData) {
     fEndToast();
@@ -69,7 +68,7 @@ function fInitialSetup() {
 
   // 5. The setup is now complete. Custom abilities are created on-demand by the user.
   fEndToast();
-  const successMessage = `Your Player\'s Codex is now ready to use.\n\nPlease bookmark this Player\'s Codex file (and you can also find it in your Google Drive under the "${parentFolderName}" folder).`; // <-- UPDATED
+  const successMessage = `Your Player\'s Codex is now ready to use.\n\nPlease bookmark this Codex file (and you can also find it in your Google Drive under the "${parentFolderName}" folder).`;
   fShowMessage('✅ Setup Complete!', successMessage);
 } // End function fInitialSetup
 

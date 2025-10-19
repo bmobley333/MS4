@@ -1,5 +1,5 @@
-/* global fShowMessage, fBuildTagMaps, g, fPromptWithInput, fGetSheetId, fGetOrCreateFolder, fSyncVersionFiles, DriveApp, SpreadsheetApp, fCreateNewCharacterSheet */
-/* exported fCreateCharacter, fUpdateCharacterRulesLinks */
+/* global fShowMessage, fBuildTagMaps, g, fPromptWithInput, fGetSheetId, fGetOrCreateFolder, fSyncVersionFiles, DriveApp, SpreadsheetApp, fCreateNewCharacterSheet, fGetVerifiedLocalFile, fGetCodexSpreadsheet, fGetSheetData, fShowToast, fEndToast, fDeleteTableRow, fUpdatePowerTablesList, fUpdateMagicItemChoices, fUpdateSkillSetChoices, fFilterPowers, fFilterMagicItems, fFilterSkillSets, fActivateSheetByName */
+/* exported fCreateCharacter, fUpdateCharacterRulesLinks, fCharacterOnboarding */
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 // End - n/a
@@ -129,12 +129,10 @@ function fRenameCharacter() {
 
   // 1. Find the selected character (must be exactly one)
   const selectedCharacters = [];
-  // Loop from the row after the header to the end of the data array
   for (let r = headerRow + 1; r < arr.length; r++) {
-    // Check that the row exists, has a checkbox checked, and has a character name
     if (arr[r] && arr[r][checkboxCol] === true && arr[r][charNameCol]) {
       selectedCharacters.push({
-        row: r + 1, // 1-based row for direct use with Range objects
+        row: r + 1,
         name: arr[r][charNameCol],
         id: arr[r][csidCol],
         version: arr[r][versionCol],
@@ -176,9 +174,11 @@ function fRenameCharacter() {
     return;
   }
 
-  // 4. Process the new name (strip and re-apply correct version prefix)
-  const cleanedName = newBaseName.replace(/^v\d+\s*/, '').trim();
-  const finalName = `v${character.version} ${cleanedName}`;
+  // 4. Process the new name (strip existing prefix, add new prefix)
+  // Use a more robust regex to handle different potential prefixes
+  const prefixRegex = /^(v|💪MS|💪)\d+\s*/;
+  const cleanedName = newBaseName.replace(prefixRegex, '').trim();
+  const finalName = `${g.ShortVersionName} ${cleanedName}`; // <-- UPDATED
 
   // 5. Execute the rename
   fShowToast(`Renaming to "${finalName}"...`, 'Rename Character');
@@ -329,7 +329,10 @@ function fCreateNewCharacterSheet(version) {
     return;
   }
 
-  const versionedCharacterName = `v${version} ${characterName}`;
+  // Use a more robust regex to handle different potential prefixes
+  const prefixRegex = /^(v|💪MS|💪)\d+\s*/;
+  const cleanedName = characterName.replace(prefixRegex, '').trim();
+  const versionedCharacterName = `${g.ShortVersionName} ${cleanedName}`; // <-- UPDATED
   newCharFile.setName(versionedCharacterName);
 
   // 3. Log the new character in the Codex's <Characters> sheet
@@ -381,7 +384,7 @@ function fCreateNewCharacterSheet(version) {
   const link = SpreadsheetApp.newRichTextValue().setText(versionedCharacterName).setLinkUrl(newCharFile.getUrl()).build();
   destSheet.getRange(targetRow, colTags.charname + 1).setRichTextValue(link);
 
-  const rulesFile = fGetVerifiedLocalFile(version, 'Rules'); // Use the new function here too
+  const rulesFile = fGetVerifiedLocalFile(version, 'Rules');
   if (rulesFile) {
     const rulesUrl = `https://docs.google.com/document/d/${rulesFile.getId()}/`;
     const rulesLink = SpreadsheetApp.newRichTextValue().setText(`v${version} Rules`).setLinkUrl(rulesUrl).build();
@@ -389,7 +392,7 @@ function fCreateNewCharacterSheet(version) {
   }
 
   fEndToast();
-  const successMessage = `✅ Success! Your new character, "${characterName}," has been created.\n\nA link has been added to your <Characters> sheet.`;
+  const successMessage = `✅ Success! Your new character, "${cleanedName}," has been created.\n\nA link has been added to your <Characters> sheet.`; // Display cleaned name
   fShowMessage('✅ Character Created!', successMessage);
 } // End function fCreateNewCharacterSheet
 

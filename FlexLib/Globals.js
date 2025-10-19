@@ -12,7 +12,8 @@ const g = {
   ADMIN_EMAIL: 'metascapegame@gmail.com',
   DEV_EMAIL: 'TheBMobley@gmail.com',
   CURRENT_VERSION: '4',
-  VersionName: '💪MScape-4',
+  VersionName: '💪MetaScape-4',
+  ShortVersionName: '💪MS4',
   // The master source of truth for all game versions
   MASTER_VER_ID: '1wjX3P2GzDm733205yosvmSro7r0gbdOR2cEcvU7C3gE',
   MASTER_VER_INFO: {
