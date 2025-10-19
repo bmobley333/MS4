@@ -7,16 +7,26 @@
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
 
 /* function fPrepGameForPaper
-   Purpose: Creates a clean, print-friendly copy of the <Game> sheet by duplicating it and removing hidden designer rows/columns.
-   Assumptions: Run from a Character Sheet. A sheet named 'Game' and 'Paper' must exist. The 'Game' sheet must have a 'Hide:' note in cell A1.
-   Notes: This is a designer-only function to prepare a sheet for printing or clean viewing.
+   Purpose: Creates a clean, print-friendly copy of the <Game> sheet by copying it to the developer's master "Paper" file.
+   Assumptions: Run from a Character Sheet. This is a designer-only function.
+   Notes: This function reads the master 'Paper' sheet ID from the Versions sheet, which only designers can access.
    @returns {void}
 */
 function fPrepGameForPaper() {
   fShowToast('⏳ Preparing <Paper> sheet...', 'Print Prep');
+
+  // --- Admin Check ---
+  const adminEmails = [g.ADMIN_EMAIL, g.DEV_EMAIL].map(e => e.toLowerCase());
+  const isAdmin = adminEmails.includes(Session.getActiveUser().getEmail().toLowerCase());
+  if (!isAdmin) {
+    fEndToast();
+    fShowMessage('❌ Permission Denied', 'This function is available for designers only.');
+    return;
+  }
+  // --- End Admin Check ---
+
   const ss = SpreadsheetApp.getActiveSpreadsheet();
   const sourceSheet = ss.getSheetByName('Game');
-  const oldPaperSheet = ss.getSheetByName('Paper');
 
   if (!sourceSheet) {
     fEndToast();
@@ -24,35 +34,69 @@ function fPrepGameForPaper() {
     return;
   }
 
-  // 1. Delete the old <Paper> sheet if it exists.
-  if (oldPaperSheet) {
-    ss.deleteSheet(oldPaperSheet);
+  // 1. Get the Developer's Master Paper Sheet ID
+  let paperSheetId;
+  try {
+    fShowToast('Locating master paper sheet...', 'Print Prep');
+    paperSheetId = fGetMasterSheetId(g.CURRENT_VERSION, 'Paper'); // <-- YOUR 'Paper' ssabbr
+  } catch (e) {
+    fEndToast();
+    fShowMessage('❌ Error', `Could not find master 'Paper' sheet ID. Error: ${e.message}`);
+    return;
   }
 
-  // 2. Duplicate the <Game> sheet to create a perfect copy.
-  const newPaperSheet = sourceSheet.copyTo(ss);
+  if (!paperSheetId) {
+    fEndToast();
+    fShowMessage('❌ Error', "Could not find the master 'Paper' sheet ID in the <Versions> sheet.");
+    return;
+  }
+
+  // 2. Open the external Master Paper spreadsheet
+  let paperSS;
+  try {
+    paperSS = SpreadsheetApp.openById(paperSheetId);
+  } catch (e) {
+    fEndToast();
+    fShowMessage('❌ Error', "Could not open the master 'Paper' file. It may have been deleted or permissions may have changed.");
+    return;
+  }
+
+  // 3. Duplicate the <Game> sheet *into the external spreadsheet* FIRST.
+  fShowToast('Copying <Game> data...', 'Print Prep');
+  const newPaperSheet = sourceSheet.copyTo(paperSS);
+
+  // 4. Now that there are two sheets, it is safe to delete the old one.
+  const oldPaperSheet = paperSS.getSheetByName('Paper');
+  if (oldPaperSheet) {
+    paperSS.deleteSheet(oldPaperSheet);
+  }
+
+  // 5. Rename and position the new sheet.
   newPaperSheet.setName('Paper');
+  newPaperSheet.setTabColor(null); // Remove any custom tab color
+  paperSS.moveActiveSheet(1);
 
-  // 3. Move the new sheet to the very first position.
-  ss.setActiveSheet(newPaperSheet);
-  ss.moveActiveSheet(1);
 
-  // 4. Read the 'Hide:' notation from the A1 cell.
+  // 6. Read the 'Hide:' notation from the A1 cell.
   const note = newPaperSheet.getRange('A1').getNote();
   if (!note.includes('Hide: ')) {
     fEndToast();
-    fShowMessage('✅ Success', 'The <Paper> sheet has been created, but no "Hide:" notation was found to remove designer elements.');
+    fShowMessage('✅ Success', 'The master <Paper> sheet has been updated, but no "Hide:" notation was found to remove designer elements.');
+    // Activate the new sheet for the user
+    SpreadApp.openById(paperSheetId);
     return;
   }
   const hideString = note.split('Hide: ')[1].split('\n')[0];
   const rangesToHide = fParseA1Notation(hideString);
 
-  // 5. Delete the specified columns and rows, starting from the end to avoid shifting indices.
+  // 7. Delete the specified columns and rows from the external sheet.
   fShowToast('Removing designer elements...', 'Print Prep');
   rangesToHide.cols.sort((a, b) => b - a).forEach(col => newPaperSheet.deleteColumn(col));
   rangesToHide.rows.sort((a, b) => b - a).forEach(row => newPaperSheet.deleteRow(row));
 
-  newPaperSheet.activate(); // Make it the active sheet.
   fEndToast();
-  fShowMessage('✅ Success', 'The <Paper> sheet has been successfully created and cleaned for printing.');
+  fShowMessage('✅ Success', "The master 'Paper' sheet has been successfully updated with a clean copy of this character's <Game> sheet.");
+
+  // Activate the new sheet for the user. This will open the Paper CS file.
+  SpreadsheetApp.openById(paperSheetId);
 } // End function fPrepGameForPaper

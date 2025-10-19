@@ -143,7 +143,7 @@ function fCreateDesignerMenu(context = '') {
   }
 
   if (context === 'CS') {
-    menu.addItem('Copy CS <Game> to <Paper>', 'fMenuPrepGameForPaper');
+    menu.addItem('Copy <Game> to Paper', 'fMenuPrepGameForPaper'); // <-- UPDATED
     menu.addSeparator();
   }
 

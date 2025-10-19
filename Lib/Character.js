@@ -311,14 +311,15 @@ function fCreateNewCharacterSheet(version) {
   const newCharSS = SpreadsheetApp.openById(newCharFile.getId());
   fEmbedCodexId(newCharSS);
 
-  // Reposition <Paper> sheet for the player
-  const paperSheet = newCharSS.getSheetByName('Paper');
-  const hideSheet = newCharSS.getSheetByName('Hide>');
-  if (paperSheet && hideSheet) {
-    const hideIndex = hideSheet.getIndex();
-    newCharSS.setActiveSheet(paperSheet);
-    newCharSS.moveActiveSheet(hideIndex - 1);
-  }
+  // --- THIS LOGIC IS NO LONGER NEEDED, as <Paper> is not in the CS template ---
+  // const paperSheet = newCharSS.getSheetByName('Paper');
+  // const hideSheet = newCharSS.getSheetByName('Hide>');
+  // if (paperSheet && hideSheet) {
+  //   const hideIndex = hideSheet.getIndex();
+  //   newCharSS.setActiveSheet(paperSheet);
+  //   newCharSS.moveActiveSheet(hideIndex - 1);
+  // }
+  // --- END REMOVED LOGIC ---
 
   const characterName = fPromptWithInput('Name Your Character', 'Please enter a name for your new character:');
 
