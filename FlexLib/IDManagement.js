@@ -28,7 +28,6 @@ function fGetVerifiedLocalFile(version, ssAbbr) {
     const masterCopiesFolder = fGetSubFolder('mastercopiesfolderid', 'Master Copies');
     if (!masterCopiesFolder) {
       fEndToast();
-      // fGetSubFolder will show its own error, so we can just exit here.
       return null;
     }
 
@@ -38,7 +37,7 @@ function fGetVerifiedLocalFile(version, ssAbbr) {
       return null;
     }
 
-    const fileName = `v${version} MASTER_${ssAbbr}`;
+    const fileName = `${g.ShortVersionName} MASTER_${ssAbbr}`; // <-- UPDATED
     const newFile = DriveApp.getFileById(masterId).makeCopy(fileName, masterCopiesFolder);
     const newId = newFile.getId();
 
@@ -54,14 +53,12 @@ function fGetVerifiedLocalFile(version, ssAbbr) {
       }
     }
 
-    fLoadSheetIDsFromMyVersions();
+    fLoadSheetIDsFromMyVersions(); // Reload cache with the new ID
     fShowToast(`✅ Successfully restored ${ssAbbr}!`, 'File Health Check', 5);
 
-    // --- NEW: Post-Heal Link Repair ---
     if (ssAbbr === 'Rules') {
       fUpdateCharacterRulesLinks(version, newId);
     }
-    // --- END NEW ---
 
     return newFile;
   }

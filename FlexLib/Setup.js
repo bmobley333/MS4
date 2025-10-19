@@ -88,8 +88,6 @@ function fSyncAllVersionFiles(sourceData, masterCopiesFolder) {
   sourceData[0].forEach((tag, c) => fNormalizeTags(tag).forEach(t => (sourceColTags[t] = c)));
   sourceData.forEach((row, r) => fNormalizeTags(row[0]).forEach(t => (sourceRowTags[t] = r)));
 
-  // --- NEW LOGIC ---
-  // Use the 'Header' tag to find the start of the data.
   const headerRow = sourceRowTags.header;
   if (headerRow === undefined) {
     throw new Error('Could not find "Header" row tag in the master <Versions> sheet.');
@@ -121,7 +119,7 @@ function fSyncAllVersionFiles(sourceData, masterCopiesFolder) {
     fShowToast(`⏳ Copying ${ssAbbr} (Version ${version})...`, '⚙️ Setup');
 
     // 4. Make the copy with the new versioned file name
-    const fileName = `v${version} MASTER_${ssAbbr}`;
+    const fileName = `${g.ShortVersionName} MASTER_${ssAbbr}`; // <-- UPDATED
     const newFile = DriveApp.getFileById(masterId).makeCopy(fileName, masterCopiesFolder);
 
     // Only try to embed the Codex ID if the new file is a spreadsheet.
