@@ -56,7 +56,6 @@ function run(command, sheetToActivate) {
       TrimSheet: fTrimSheet,
       Test: fTestIdManagement,
       CreateLatestCharacter: fCreateLatestCharacter,
-      CreateLegacyCharacter: fCreateLegacyCharacter,
       RenameCharacter: fRenameCharacter,
       DeleteCharacter: fDeleteCharacter,
       ShowPlaceholder: fShowPlaceholderMessage,

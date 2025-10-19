@@ -19,7 +19,6 @@ function fCreateCodexMenu() {
   // --- Characters Submenu ---
   const charactersMenu = ui.createMenu('👤 Characters')
     .addItem('Create New', 'fMenuCreateLatestCharacter')
-    .addItem('Create Old Legacy Version', 'fMenuCreateLegacyCharacter')
     .addItem('Rename', 'fMenuRenameCharacter')
     .addSeparator()
     .addItem('Delete Character(s)', 'fMenuDeleteCharacter');

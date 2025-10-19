@@ -110,15 +110,6 @@ function fMenuCreateLatestCharacter() {
   FlexLib.run('CreateLatestCharacter', 'Characters');
 } // End function fMenuCreateLatestCharacter
 
-/* function fMenuCreateLegacyCharacter
-   Purpose: Local trigger for the "Create New Character > Older Legacy Version" menu item.
-   Assumptions: None.
-   Notes: Acts as a pass-through to the central dispatcher in FlexLib.
-   @returns {void}
-*/
-function fMenuCreateLegacyCharacter() {
-  FlexLib.run('CreateLegacyCharacter', 'Characters');
-} // End function fMenuCreateLegacyCharacter
 
 /* function fMenuRenameCharacter
    Purpose: Local trigger for the "Rename Character" menu item.

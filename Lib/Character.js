@@ -426,58 +426,6 @@ function fCreateLatestCharacter() {
 } // End function fCreateLatestCharacter
 
 
-/* function fCreateLegacyCharacter
-   Purpose: Controller for creating a character from a list of older, non-latest versions.
-   Assumptions: The initial setup process has already been completed by the user.
-   Notes: Prompts the user to select from a list of available legacy versions.
-   @returns {void}
-*/
-function fCreateLegacyCharacter() {
-  fShowToast('⏳ Initializing legacy character creation...', 'New Character');
-  const ssKey = 'Codex';
-  const sheetName = 'MyVersions';
-  const codexSS = fGetCodexSpreadsheet();
-
-  const { arr, rowTags, colTags } = fGetSheetData(ssKey, sheetName, codexSS);
-
-  // Find and prompt for legacy versions.
-  const versionsWithCS = arr
-    .slice(rowTags.header + 1)
-    .filter(row => row.length > colTags.ssabbr && row[colTags.ssabbr] === 'CS')
-    .map(row => parseFloat(row[colTags.version]));
-
-  if (versionsWithCS.length === 0) {
-    fEndToast();
-    fShowMessage('❌ Error', 'No versions with a Character Sheet (CS) were found in <MyVersions>.\n\nPlease run the setup from the main menu if you have not done so.');
-    return;
-  }
-
-  const latestVersion = Math.max(...versionsWithCS);
-  const legacyVersions = [...new Set(versionsWithCS.filter(v => v < latestVersion).map(String))];
-
-  if (legacyVersions.length === 0) {
-    fEndToast();
-    fShowMessage('ℹ️ No Legacy Versions', 'No older legacy versions are available to choose from.');
-    return;
-  }
-
-  const promptMessage = `Please enter the legacy game version you would like to use.\n\nAvailable versions:\n${legacyVersions.join(', ')}`;
-  const selectedVersion = fPromptWithInput('Select Legacy Version', promptMessage);
-
-  if (selectedVersion === null) {
-    fEndToast();
-    fShowMessage('ℹ️ Canceled', 'Character creation has been canceled.');
-    return;
-  }
-
-  if (!legacyVersions.includes(selectedVersion)) {
-    fEndToast();
-    fShowMessage('❌ Error', `Invalid version selected. Please enter one of the available versions: ${legacyVersions.join(', ')}`);
-    return;
-  }
-
-  fCreateCharacterFromVersion(selectedVersion);
-} // End function fCreateLegacyCharacter
 
 
 /* function fCreateCharacterFromVersion
