@@ -6,19 +6,35 @@ const SCRIPT_INITIALIZED_KEY = 'CUST_INITIALIZED';
 /* function onOpen
    Purpose: Simple trigger that runs automatically when the spreadsheet is opened.
    Assumptions: None.
-   Notes: Builds the full menu if authorized, otherwise provides an activation option. Also applies data validation rules.
+   Notes: Builds menus based on authorization status and user identity (player vs. designer). Also applies data validation rules.
    @returns {void}
 */
 function onOpen() {
+  // --- DEBUGGING ---
+  console.log('Cust onOpen triggered.');
+  const currentUserEmail = Session.getActiveUser().getEmail().toLowerCase();
+  console.log(`Current User: ${currentUserEmail}`);
+  // --- END DEBUGGING ---
+
   const scriptProperties = PropertiesService.getScriptProperties();
   const isInitialized = scriptProperties.getProperty(SCRIPT_INITIALIZED_KEY);
   const g = FlexLib.getGlobals();
-  const adminEmails = [g.ADMIN_EMAIL, g.DEV_EMAIL].map(e => e.toLowerCase());
-  const isAdmin = adminEmails.includes(Session.getActiveUser().getEmail().toLowerCase());
+  // Define primary vs secondary admin
+  const primaryAdminEmail = g.ADMIN_EMAIL.toLowerCase();
+  const secondaryAdminEmail = g.DEV_EMAIL.toLowerCase();
+  const isAdmin = currentUserEmail === primaryAdminEmail || currentUserEmail === secondaryAdminEmail;
+  const isPrimaryAdmin = currentUserEmail === primaryAdminEmail;
 
-  // --- REVISED LOGIC v2 ---
-  if (isAdmin) {
-    // If the user is an admin, ALWAYS show the full admin menus immediately.
+  // --- DEBUGGING ---
+  console.log(`Is Initialized: ${isInitialized}`);
+  console.log(`Is Admin: ${isAdmin}`);
+  console.log(`Is Primary Admin: ${isPrimaryAdmin}`);
+  // --- END DEBUGGING ---
+
+  // --- REVISED LOGIC v3 ---
+  if (isPrimaryAdmin) {
+    // If the user is the PRIMARY admin, ALWAYS show the full admin menus immediately.
+    console.log('User is Primary Admin, creating full menus.'); // DEBUG
     FlexLib.fApplyPowerValidations();
     FlexLib.fApplyMagicItemValidations();
     FlexLib.fApplySkillSetValidations();
@@ -26,20 +42,33 @@ function onOpen() {
     FlexLib.fCreateDesignerMenu('Cust');
     // Admin visibility state is not auto-changed
   } else if (!isInitialized) {
-    // If it's a regular user AND the sheet is NOT initialized, show only the activation menu.
+    // If the sheet is NOT initialized, ALWAYS show only the activation menu.
+    // This now applies to regular users AND the secondary admin (thebmobley@gmail.com).
+    console.log('Sheet NOT initialized, creating activation menu.'); // DEBUG
     SpreadsheetApp.getUi()
       .createMenu(g.VersionName)
       .addItem(`▶️ Activate ${g.VersionName} Menus`, 'fActivateMenus')
       .addToUi();
+  } else if (isAdmin) {
+    // If the sheet IS initialized and the user is the SECONDARY admin.
+    console.log('User is Secondary Admin, sheet IS initialized, creating full menus.'); // DEBUG
+    FlexLib.fApplyPowerValidations();
+    FlexLib.fApplyMagicItemValidations();
+    FlexLib.fApplySkillSetValidations();
+    FlexLib.fCreateCustMenu();
+    FlexLib.fCreateDesignerMenu('Cust');
+     // Admin visibility state is not auto-changed (secondary admin can see hidden things)
   } else {
-    // If it's a regular user AND the sheet IS initialized, show the player menu and apply validations.
+    // If the sheet IS initialized and it's a regular user.
+    console.log('User is Regular Player, sheet IS initialized, creating player menu.'); // DEBUG
     FlexLib.fApplyPowerValidations();
     FlexLib.fApplyMagicItemValidations();
     FlexLib.fApplySkillSetValidations();
     FlexLib.fCreateCustMenu();
     FlexLib.fCheckAndSetVisibility(false); // Ensure elements are HIDDEN for players
   }
-  // --- END REVISED LOGIC v2 ---
+  // --- END REVISED LOGIC v3 ---
+  console.log('Cust onOpen finished.'); // DEBUG
 } // End function onOpen
 
 /* function fActivateMenus
