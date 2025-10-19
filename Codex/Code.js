@@ -6,7 +6,7 @@ const SCRIPT_INITIALIZED_KEY = 'CODEX_INITIALIZED';
 /* function onOpen
    Purpose: Simple trigger that runs automatically when the spreadsheet is opened.
    Assumptions: None.
-   Notes: Builds menus based on authorization status and user identity (player vs. designer).
+   Notes: Builds menus based on authorization status and user identity (player vs. designer). Handles admins opening templates correctly.
    @returns {void}
 */
 function onOpen() {
@@ -14,27 +14,28 @@ function onOpen() {
   const isInitialized = scriptProperties.getProperty(SCRIPT_INITIALIZED_KEY);
   const g = FlexLib.getGlobals();
   const adminEmails = [g.ADMIN_EMAIL, g.DEV_EMAIL].map(e => e.toLowerCase());
-  const isAdmin = adminEmails.includes(Session.getActiveUser().getEmail().toLowerCase());
+  const currentUserEmail = Session.getActiveUser().getEmail().toLowerCase(); // Get email once
+  const isAdmin = adminEmails.includes(currentUserEmail);
 
-  // --- REVISED LOGIC ---
-  if (!isInitialized) {
-    // If not initialized, ALWAYS show the activation menu, regardless of user role.
+  // --- REVISED LOGIC v3 ---
+  if (isAdmin) {
+    // If the user is an admin, ALWAYS show the full admin menus immediately.
+    // This prevents admins from accidentally triggering player setup on templates.
+    FlexLib.fCreateCodexMenu();
+    FlexLib.fCreateDesignerMenu('Codex');
+    // Admin visibility state is not auto-changed
+  } else if (!isInitialized) {
+    // If it's a regular user AND the sheet is NOT initialized, show only the activation menu.
     SpreadsheetApp.getUi()
       .createMenu(g.VersionName)
       .addItem(`▶️ Activate ${g.VersionName} Menus`, 'fActivateCodex')
       .addToUi();
   } else {
-    // If initialized, create the appropriate menus based on user role.
-    FlexLib.fCreateCodexMenu(); // Standard player menu
-
-    if (isAdmin) {
-      FlexLib.fCreateDesignerMenu('Codex'); // Add designer menu for admins
-      // Admin visibility state is no longer auto-changed
-    } else {
-      FlexLib.fCheckAndSetVisibility(false); // Ensure elements are HIDDEN for players
-    }
+    // If it's a regular user AND the sheet IS initialized, show the player menu.
+    FlexLib.fCreateCodexMenu();
+    FlexLib.fCheckAndSetVisibility(false); // Ensure elements are HIDDEN for players
   }
-  // --- END REVISED LOGIC ---
+  // --- END REVISED LOGIC v3 ---
 } // End function onOpen
 
 /* function fActivateCodex
