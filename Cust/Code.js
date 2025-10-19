@@ -12,33 +12,33 @@ const SCRIPT_INITIALIZED_KEY = 'CUST_INITIALIZED';
 function onOpen() {
   const scriptProperties = PropertiesService.getScriptProperties();
   const isInitialized = scriptProperties.getProperty(SCRIPT_INITIALIZED_KEY);
+  const g = FlexLib.getGlobals();
+  const adminEmails = [g.ADMIN_EMAIL, g.DEV_EMAIL].map(e => e.toLowerCase());
+  const isAdmin = adminEmails.includes(Session.getActiveUser().getEmail().toLowerCase());
 
-  if (isInitialized) {
-    // Apply the data validation dropdowns to all sheets
+  // --- REVISED LOGIC ---
+  if (!isInitialized) {
+    // If not initialized, ALWAYS show the activation menu.
+    SpreadsheetApp.getUi()
+      .createMenu(g.VersionName)
+      .addItem(`▶️ Activate ${g.VersionName} Menus`, 'fActivateMenus')
+      .addToUi();
+  } else {
+    // If initialized, create menus based on user role and apply validations.
     FlexLib.fApplyPowerValidations();
     FlexLib.fApplyMagicItemValidations();
-    FlexLib.fApplySkillSetValidations(); // <-- ADDED
+    FlexLib.fApplySkillSetValidations();
 
-    // Create the standard player menu.
-    FlexLib.fCreateCustMenu();
-
-    // Get the globals object from the library to access admin email.
-    const g = FlexLib.getGlobals();
-    const adminEmails = [g.ADMIN_EMAIL, g.DEV_EMAIL].map(e => e.toLowerCase());
-    const isAdmin = adminEmails.includes(Session.getActiveUser().getEmail().toLowerCase());
+    FlexLib.fCreateCustMenu(); // Standard player menu
 
     if (isAdmin) {
-      FlexLib.fCreateDesignerMenu('Cust');
+      FlexLib.fCreateDesignerMenu('Cust'); // Add designer menu for admins
       // Admin visibility state is no longer auto-changed
     } else {
       FlexLib.fCheckAndSetVisibility(false); // Ensure elements are HIDDEN for players
     }
-  } else {
-    SpreadsheetApp.getUi()
-      .createMenu('💪 MS3')
-      .addItem('▶️ Activate 💪MS3 Menus', 'fActivateMenus')
-      .addToUi();
   }
+  // --- END REVISED LOGIC ---
 } // End function onOpen
 
 /* function fActivateMenus

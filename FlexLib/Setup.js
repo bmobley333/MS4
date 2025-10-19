@@ -1,4 +1,4 @@
-/* global fShowMessage, DriveApp, SpreadsheetApp, g, fNormalizeTags, fLoadSheetToArray, fBuildTagMaps, MimeType, fEmbedCodexId */
+/* global fShowMessage, DriveApp, SpreadsheetApp, g, fNormalizeTags, fLoadSheetToArray, fBuildTagMaps, MimeType, fEmbedCodexId, fGetOrCreateFolder, fGetSheetData, fMoveFileToFolder, fShowToast, fEndToast */
 /* exported fLogLocalFileCopy */
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -19,7 +19,8 @@ function fInitialSetup() {
 
   // 1. Create Folder Structure & Store Folder IDs
   fShowToast('Creating Google Drive folders...', '⚙️ Setup');
-  const parentFolder = fGetOrCreateFolder('💪 My MS3 RPG');
+  const parentFolderName = `${g.VersionName} RPG`; // <-- UPDATED
+  const parentFolder = fGetOrCreateFolder(parentFolderName);
   const masterCopiesFolder = fGetOrCreateFolder('Master Copies', parentFolder);
   const charactersFolder = fGetOrCreateFolder('Characters', parentFolder);
   const customAbilitiesFolder = fGetOrCreateFolder('Custom Abilities', parentFolder);
@@ -68,7 +69,7 @@ function fInitialSetup() {
 
   // 5. The setup is now complete. Custom abilities are created on-demand by the user.
   fEndToast();
-  const successMessage = 'Your Player\'s Codex is now ready to use.\n\nPlease bookmark this Player\'s Codex file (and you can also find it in your Google Drive under the "💪 My MS3 RPG" folder).';
+  const successMessage = `Your Player\'s Codex is now ready to use.\n\nPlease bookmark this Player\'s Codex file (and you can also find it in your Google Drive under the "${parentFolderName}" folder).`; // <-- UPDATED
   fShowMessage('✅ Setup Complete!', successMessage);
 } // End function fInitialSetup
 

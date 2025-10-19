@@ -1,4 +1,4 @@
-/* global SpreadsheetApp, fCheckAndSetVisibility */
+/* global SpreadsheetApp, fCheckAndSetVisibility, g */
 /* exported fCreateCodexMenu, fCreateFlexMenu, fCreateGenericMenus, fCreateCustMenu, fCreateDesignerMenu, fCheckAndSetVisibility */
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -34,7 +34,7 @@ function fCreateCodexMenu() {
     .addItem('Add Sheet From ID', 'fMenuAddNewCustomSource');
 
   // --- Main Flex Menu ---
-  ui.createMenu('💪 MS3')
+  ui.createMenu(g.VersionName) // <-- UPDATED
     .addSubMenu(charactersMenu)
     .addSubMenu(customAbilitiesMenu)
     .addToUi();
@@ -66,7 +66,7 @@ function fCreateFlexMenu() {
     .addSeparator()
     .addItem('Clear All Selections', 'fMenuClearSkillSetChoices');
 
-  ui.createMenu('💪 MS3')
+  ui.createMenu(g.VersionName) // <-- UPDATED
     .addSubMenu(filterPowersMenu)
     .addSubMenu(filterMagicItemsMenu)
     .addSubMenu(filterSkillSetsMenu)
@@ -110,7 +110,7 @@ function fCreateCustMenu() {
     .addSeparator()
     .addItem('🗑️ Delete Selected Skill Sets', 'fMenuDeleteSelectedSkillSets');
 
-  ui.createMenu('💪 MS3')
+  ui.createMenu(g.VersionName) // <-- UPDATED
     .addSubMenu(powersMenu)
     .addSubMenu(magicItemsMenu)
     .addSubMenu(skillSetsMenu)

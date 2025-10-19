@@ -17,28 +17,29 @@ const SCRIPT_INITIALIZED_KEY = 'SCRIPT_INITIALIZED';
 function onOpen() {
   const scriptProperties = PropertiesService.getScriptProperties();
   const isInitialized = scriptProperties.getProperty(SCRIPT_INITIALIZED_KEY);
+  const g = FlexLib.getGlobals();
+  const adminEmails = [g.ADMIN_EMAIL, g.DEV_EMAIL].map(e => e.toLowerCase());
+  const isAdmin = adminEmails.includes(Session.getActiveUser().getEmail().toLowerCase());
 
-  if (isInitialized) {
-    // Always create the main player menu.
-    FlexLib.fCreateFlexMenu();
-
-    // Get the globals object from the library.
-    const g = FlexLib.getGlobals();
-    const adminEmails = [g.ADMIN_EMAIL, g.DEV_EMAIL].map(e => e.toLowerCase());
-    const isAdmin = adminEmails.includes(Session.getActiveUser().getEmail().toLowerCase());
+  // --- REVISED LOGIC ---
+  if (!isInitialized) {
+    // If not initialized, ALWAYS show the activation menu.
+    SpreadsheetApp.getUi()
+      .createMenu(g.VersionName)
+      .addItem(`▶️ Activate ${g.VersionName} Menus`, 'fActivateMenus')
+      .addToUi();
+  } else {
+    // If initialized, create menus based on user role.
+    FlexLib.fCreateFlexMenu(); // Standard player menu
 
     if (isAdmin) {
-      FlexLib.fCreateDesignerMenu('CS');
+      FlexLib.fCreateDesignerMenu('CS'); // Add designer menu for admins
       // Admin visibility state is no longer auto-changed
     } else {
       FlexLib.fCheckAndSetVisibility(false); // Ensure elements are HIDDEN for players
     }
-  } else {
-    SpreadsheetApp.getUi()
-      .createMenu('💪 MS3')
-      .addItem('▶️ Activate 💪MS3 Menus', 'fActivateMenus')
-      .addToUi();
   }
+  // --- END REVISED LOGIC ---
 } // End function onOpen
 
 /* function fActivateMenus

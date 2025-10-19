@@ -1,4 +1,4 @@
-/* global DriveApp, PropertiesService */
+/* global DriveApp, PropertiesService, g, fGetCodexSpreadsheet, fGetSheetData, fShowMessage, fShowToast, fEndToast, SpreadsheetApp, MimeType, fEmbedCodexId */
 /* exported fGetOrCreateFolder, fSyncVersionFiles, fGetSubFolder */
 
 ////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////////
@@ -19,6 +19,7 @@ function fGetSubFolder(folderTag, defaultFolderName) {
   const dataSheet = codexSS.getSheetByName('Data');
   const { arr, rowTags, colTags } = fGetSheetData('Codex', 'Data', codexSS, true); // Force refresh
   const dataCol = colTags.data;
+  const parentFolderName = `${g.VersionName} RPG`; // <-- UPDATED
 
   // 1. Get the Main Flex Folder first, as it's the parent for everything.
   const flexFolderIdRow = rowTags.flexfolderid;
@@ -30,8 +31,12 @@ function fGetSubFolder(folderTag, defaultFolderName) {
   let mainFolder;
   try {
     mainFolder = DriveApp.getFolderById(flexFolderId);
+    // --- Self-Heal: Check if the folder name is correct ---
+    if (mainFolder.getName() !== parentFolderName) {
+      mainFolder.setName(parentFolderName);
+    }
   } catch (e) {
-    fShowMessage('❌ Error', 'Could not access the main "💪 My MS3 RPG" folder. It may have been deleted. Please run the setup again to restore it.');
+    fShowMessage('❌ Error', `Could not access the main "${parentFolderName}" folder. It may have been deleted. Please run the setup again to restore it.`); // <-- UPDATED
     return null;
   }
 
@@ -47,7 +52,24 @@ function fGetSubFolder(folderTag, defaultFolderName) {
   if (subFolderId) {
     try {
       // --- Happy Path ---
-      return DriveApp.getFolderById(subFolderId);
+      const subFolder = DriveApp.getFolderById(subFolderId);
+      // --- Self-Heal: Ensure it's in the correct parent ---
+      let parent = null;
+      const parents = subFolder.getParents();
+      if (parents.hasNext()) {
+        parent = parents.next();
+      }
+      if (!parent || parent.getId() !== mainFolder.getId()) {
+        fShowToast(`⏳ Correcting folder location for "${defaultFolderName}"...`, 'System Health');
+        // If it had other parents, remove them first
+        const oldParents = subFolder.getParents();
+        while (oldParents.hasNext()) {
+          oldParents.next().removeFolder(subFolder);
+        }
+        // Add it to the correct parent
+        mainFolder.addFolder(subFolder);
+      }
+      return subFolder;
     } catch (e) {
       // --- Self-Heal Path ---
       // The ID is logged but the folder was deleted. Recreate it.

@@ -16,23 +16,25 @@ function onOpen() {
   const adminEmails = [g.ADMIN_EMAIL, g.DEV_EMAIL].map(e => e.toLowerCase());
   const isAdmin = adminEmails.includes(Session.getActiveUser().getEmail().toLowerCase());
 
-  if (isInitialized || isAdmin) {
-    // If the script is initialized OR the user is the admin, create the full menus.
-    FlexLib.fCreateCodexMenu();
+  // --- REVISED LOGIC ---
+  if (!isInitialized) {
+    // If not initialized, ALWAYS show the activation menu, regardless of user role.
+    SpreadsheetApp.getUi()
+      .createMenu(g.VersionName)
+      .addItem(`▶️ Activate ${g.VersionName} Menus`, 'fActivateCodex')
+      .addToUi();
+  } else {
+    // If initialized, create the appropriate menus based on user role.
+    FlexLib.fCreateCodexMenu(); // Standard player menu
 
     if (isAdmin) {
-      FlexLib.fCreateDesignerMenu('Codex');
+      FlexLib.fCreateDesignerMenu('Codex'); // Add designer menu for admins
       // Admin visibility state is no longer auto-changed
     } else {
       FlexLib.fCheckAndSetVisibility(false); // Ensure elements are HIDDEN for players
     }
-  } else {
-    // If not initialized, show a simple menu to activate the script.
-    SpreadsheetApp.getUi()
-      .createMenu('💪 MS3')
-      .addItem('▶️ Activate 💪MS3 Menus', 'fActivateCodex')
-      .addToUi();
   }
+  // --- END REVISED LOGIC ---
 } // End function onOpen
 
 /* function fActivateCodex

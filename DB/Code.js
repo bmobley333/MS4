@@ -16,19 +16,24 @@ function onOpen() {
   const adminEmails = [g.ADMIN_EMAIL, g.DEV_EMAIL].map(e => e.toLowerCase());
   const isAdmin = adminEmails.includes(Session.getActiveUser().getEmail().toLowerCase());
 
-  if (isInitialized) {
+  // --- REVISED LOGIC ---
+  if (!isInitialized) {
+    // If not initialized, ALWAYS show the activation menu.
+    SpreadsheetApp.getUi()
+      .createMenu(g.VersionName)
+      .addItem(`▶️ Activate ${g.VersionName} Menus`, 'fActivateMenus')
+      .addToUi();
+  } else {
+    // If initialized, create menus based on user role.
     if (isAdmin) {
-      FlexLib.fCreateDesignerMenu('DB');
+      FlexLib.fCreateDesignerMenu('DB'); // Only admins see menus here
       // Admin visibility state is no longer auto-changed
     } else {
-      FlexLib.fCheckAndSetVisibility(false); // Ensure elements are HIDDEN for players
+      // Regular players see no menu here, but still hide designer elements
+      FlexLib.fCheckAndSetVisibility(false);
     }
-  } else {
-    SpreadsheetApp.getUi()
-      .createMenu('💪 MS3')
-      .addItem('▶️ Activate 💪MS3 Menus', 'fActivateMenus')
-      .addToUi();
   }
+  // --- END REVISED LOGIC ---
 } // End function onOpen
 
 /* function fActivateMenus
